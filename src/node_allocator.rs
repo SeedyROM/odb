@@ -6,7 +6,7 @@ use std::{
 
 use crate::{CACHE_LINE_SIZE, node::Node};
 
-// Memory manager for node allocation
+/// Memory manager for [`Node`] allocation
 pub struct NodeAllocator<const S: usize> {
     // Pre-allocated memory pools for different node heights
     pub pools: Vec<Vec<*mut u8>>,
@@ -32,7 +32,7 @@ impl<const S: usize> NodeAllocator<S> {
         NodeAllocator { pools }
     }
 
-    // Allocate a node with the given height
+    /// Allocate a node with the given height
     pub(crate) fn allocate(&mut self, price: u64, volume: u64, height: usize) -> *mut Node {
         let forward_ptr_size = std::mem::size_of::<AtomicPtr<Node>>();
 
@@ -78,7 +78,6 @@ impl<const S: usize> NodeAllocator<S> {
         }
     }
 
-    // Deallocate a node
     pub(crate) fn deallocate(&mut self, node: *mut Node) {
         let height = unsafe { (*node).height as usize };
         let forward_ptr_size = std::mem::size_of::<AtomicPtr<Node>>();

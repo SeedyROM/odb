@@ -5,6 +5,7 @@ use std::sync::atomic::Ordering;
 use crate::epoch_manager::{EpochManager, LocalEpoch};
 use crate::node::Node;
 
+/// A lock-free skip list implementation with epoch-based reclamation
 pub struct LockFreeSkipList<const S: usize> {
     head: *mut Node,
     epoch_manager: Arc<EpochManager<S>>,
@@ -27,6 +28,8 @@ impl<const S: usize> LockFreeSkipList<S> {
         level
     }
 
+    /// Create a new skip list with the given epoch manager
+    /// and a head node with maximum value.
     pub fn new(epoch_manager: Arc<EpochManager<S>>) -> Self {
         // Use the helper method
         let head = epoch_manager.allocate_node(u64::MAX, 0, S);
@@ -37,7 +40,7 @@ impl<const S: usize> LockFreeSkipList<S> {
         }
     }
 
-    // Find a node with guards to protect from reclamation
+    /// Find a node with guards to protect from reclamation
     pub fn find(
         &self,
         price: u64,
@@ -76,7 +79,7 @@ impl<const S: usize> LockFreeSkipList<S> {
         found
     }
 
-    // Insert with optimized memory management
+    /// Insert with optimized memory management
     pub fn insert(&self, price: u64, volume: u64, thread_epoch: &LocalEpoch) -> bool {
         let mut preds: [*mut Node; S] = [ptr::null_mut(); S];
         let mut succs: [*mut Node; S] = [ptr::null_mut(); S];
@@ -136,7 +139,7 @@ impl<const S: usize> LockFreeSkipList<S> {
         true
     }
 
-    // Remove with memory reclamation
+    /// Remove with memory reclamation
     pub fn remove(&self, price: u64, thread_epoch: &LocalEpoch) -> bool {
         let mut preds: [*mut Node; S] = [ptr::null_mut(); S];
         let mut succs: [*mut Node; S] = [ptr::null_mut(); S];

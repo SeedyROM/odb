@@ -7,29 +7,26 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use crate::node::Node;
 use crate::node_allocator::NodeAllocator;
 
-// Alignment for cache lines (typically 64 bytes on modern CPUs)
-pub const CACHE_LINE_SIZE: usize = 64;
-
-// Global epoch counter
+/// Global epoch counter
 pub struct GlobalEpoch {
     epoch: AtomicUsize,
 }
 
-// Thread-local epoch tracker
+/// Thread-local epoch tracker
 pub struct LocalEpoch {
     pub global: Arc<GlobalEpoch>,
     local: AtomicUsize,
     active: AtomicUsize, // 0 = inactive, 1 = active
 }
 
-// Garbage collection entry
+/// Garbage collection entry
 pub struct GarbageEntry {
     node: *mut Node,
     epoch_deleted: usize,
     next: *mut GarbageEntry,
 }
 
-// Thread-local garbage collection list
+/// Thread-local garbage collection list
 pub struct GarbageList {
     pub(crate) head: *mut GarbageEntry,
     pub(crate) size: usize,
@@ -38,7 +35,7 @@ pub struct GarbageList {
 unsafe impl Send for GarbageList {}
 unsafe impl Sync for GarbageList {}
 
-// Epoch-based reclamation manager
+/// Epoch-based reclamation manager
 pub struct EpochManager<const S: usize> {
     pub global: Arc<GlobalEpoch>,
     pub local_epochs: Vec<Arc<LocalEpoch>>,
@@ -56,6 +53,8 @@ impl<const S: usize> Default for EpochManager<S> {
 }
 
 impl<const S: usize> EpochManager<S> {
+    /// Creates a new instance of `EpochManager`
+    /// with a global epoch initialized to 0.
     pub fn new() -> Self {
         EpochManager {
             global: Arc::new(GlobalEpoch {
@@ -67,7 +66,7 @@ impl<const S: usize> EpochManager<S> {
         }
     }
 
-    // Register a new thread
+    /// Register a new thread
     pub fn register_thread(&mut self) -> Arc<LocalEpoch> {
         let local = Arc::new(LocalEpoch {
             global: Arc::clone(&self.global),
@@ -79,7 +78,7 @@ impl<const S: usize> EpochManager<S> {
         local
     }
 
-    // Enter a critical section
+    /// Enter a critical section
     pub fn enter(&self, local: &LocalEpoch) {
         local.active.store(1, Ordering::Release);
         local
@@ -87,12 +86,12 @@ impl<const S: usize> EpochManager<S> {
             .store(self.global.epoch.load(Ordering::Acquire), Ordering::Release);
     }
 
-    // Exit a critical section
+    /// Exit a critical section
     pub fn exit(&self, local: &LocalEpoch) {
         local.active.store(0, Ordering::Release);
     }
 
-    // Try to advance the global epoch
+    /// Try to advance the global epoch
     pub fn try_advance(&self) -> bool {
         let current_epoch = self.global.epoch.load(Ordering::Acquire);
 
@@ -118,7 +117,7 @@ impl<const S: usize> EpochManager<S> {
             .is_ok()
     }
 
-    // Add a node to the garbage list for later collection
+    /// Add a node to the garbage list for later collection
     pub(crate) fn defer_free(&self, node: *mut Node) {
         let garbage = self.garbage.get_or(|| {
             UnsafeCell::new(GarbageList {
@@ -144,7 +143,7 @@ impl<const S: usize> EpochManager<S> {
         }
     }
 
-    // Collect garbage that's safe to reclaim
+    /// Collect garbage that's safe to reclaim
     pub(crate) fn collect(&self, garbage_list: *mut GarbageList) {
         unsafe {
             // Don't try to advance here, as it could change behavior

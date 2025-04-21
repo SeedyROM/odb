@@ -10,4 +10,19 @@ rand = "0.9.1"
 thread_local = "1.1.8"
 
 [dev-dependencies]
+criterion = { version = "0.5.1", features = ["html_reports"] }
 parking_lot = "0.12.3"
+
+[[bench]]
+name = "skiplist_bench"
+harness = false
+
+[profile.release]
+# NOTE (SeedyROM): Add strip option when not profiling
+strip = true
+opt-level = "z"
+# NOTE (SeedyROM): Deactivate debug symbols option when not profiling
+debug = false
+lto = true
+codegen-units = 1
+panic = "abort"

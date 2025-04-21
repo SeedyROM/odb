@@ -40,10 +40,10 @@ impl<const S: usize> NodeAllocator<S> {
         let node_size = std::mem::size_of::<Node>() + height * forward_ptr_size;
 
         // Round up to cache line size
-        let aligned_size = (node_size + CACHE_LINE_SIZE - 1) & !(CACHE_LINE_SIZE - 1);
+        let aligned_size = (node_size + *CACHE_LINE_SIZE - 1) & !(*CACHE_LINE_SIZE - 1);
 
         // Create layout with proper alignment
-        let layout = Layout::from_size_align(aligned_size, CACHE_LINE_SIZE).unwrap();
+        let layout = Layout::from_size_align(aligned_size, *CACHE_LINE_SIZE).unwrap();
 
         // Allocate memory
         let ptr = unsafe { alloc(layout) as *mut Node };
@@ -86,10 +86,10 @@ impl<const S: usize> NodeAllocator<S> {
         let node_size = std::mem::size_of::<Node>() + height * forward_ptr_size;
 
         // Round up to cache line size
-        let aligned_size = (node_size + CACHE_LINE_SIZE - 1) & !(CACHE_LINE_SIZE - 1);
+        let aligned_size = (node_size + *CACHE_LINE_SIZE - 1) & !(*CACHE_LINE_SIZE - 1);
 
         // Create layout with proper alignment
-        let layout = Layout::from_size_align(aligned_size, CACHE_LINE_SIZE).unwrap();
+        let layout = Layout::from_size_align(aligned_size, *CACHE_LINE_SIZE).unwrap();
 
         // Deallocate
         unsafe { dealloc(node as *mut u8, layout) }
@@ -196,7 +196,7 @@ mod tests {
             nodes.push(node);
 
             // Check that node is properly aligned to cache line
-            assert_eq!((node as usize) % CACHE_LINE_SIZE, 0);
+            assert_eq!((node as usize) % *CACHE_LINE_SIZE, 0);
         }
 
         // Clean up
